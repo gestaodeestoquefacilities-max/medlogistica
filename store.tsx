@@ -164,14 +164,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const request = requests.find(r => r.id === requestId);
     if (!request) return;
 
-    // If courierId is empty string, we convert to undefined so API sends null
-    const updatedRequest = { ...request, courierId: courierId || undefined };
+    const courier = couriers.find(c => c.id === courierId);
+    
+    // If courierId is provided, we automatically move to TRANSIT
+    const newStatus = courierId ? RequestStatus.TRANSIT : request.status;
+    
+    const newHistory: HistoryLog | null = courierId ? {
+      id: Math.random().toString(36).substr(2, 9),
+      timestamp: new Date().toISOString(),
+      status: RequestStatus.TRANSIT,
+      description: `Entregador ${courier?.name || 'atribuído'} - Iniciado trânsito`,
+    } : null;
+
+    const updatedRequest: DeliveryRequest = { 
+      ...request, 
+      courierId: courierId || undefined,
+      status: newStatus,
+      history: newHistory ? [...request.history, newHistory] : request.history
+    };
 
     try {
       await api.updateRequest(updatedRequest);
       setRequests((prev) =>
         prev.map((req) => (req.id === requestId ? updatedRequest : req))
       );
+      
+      // WhatsApp Notifications logic will be triggered from the UI to avoid popup blockers
+      // but the state update is handled here.
     } catch (error) {
       console.error("Failed to assign courier", error);
     }
