@@ -17,7 +17,8 @@ import {
   ChevronRight,
   Box,
   Trash2,
-  FileText
+  FileText,
+  Tag
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -88,6 +89,129 @@ const Dashboard: React.FC = () => {
     doc.save(`relatorio_medlogistica_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const generateLabels = () => {
+    // Filtrar apenas 'Aberto' e 'Separando'
+    const requestsToPrint = requests.filter(
+      r => r.status === RequestStatus.OPEN || r.status === RequestStatus.SEPARATING
+    );
+
+    if (requestsToPrint.length === 0) {
+      alert("Não há pedidos com status 'Aberto' ou 'Separando' para gerar etiquetas.");
+      return;
+    }
+
+    const doc = new jsPDF();
+    const labelWidth = 90;
+    const labelHeight = 65;
+    const marginX = 10;
+    const marginY = 10;
+    const gapX = 10;
+    const gapY = 5;
+
+    // Configurações de fonte
+    const fontSizeTitle = 14;
+    const fontSizeLabel = 9;
+    const fontSizeValue = 10;
+
+    requestsToPrint.forEach((req, index) => {
+      // Lógica de Paginação (8 etiquetas por página: 2 colunas x 4 linhas)
+      if (index > 0 && index % 8 === 0) {
+        doc.addPage();
+      }
+
+      const positionOnPage = index % 8;
+      const col = positionOnPage % 2; // 0 ou 1
+      const row = Math.floor(positionOnPage / 2); // 0 a 3
+
+      const x = marginX + (col * (labelWidth + gapX));
+      const y = marginY + (row * (labelHeight + gapY));
+
+      // Desenhar Borda da Etiqueta
+      doc.setDrawColor(200); // Cinza claro
+      doc.setLineWidth(0.5);
+      doc.roundedRect(x, y, labelWidth, labelHeight, 2, 2, 'S');
+
+      // Conteúdo
+      let currentY = y + 10;
+      const leftPadding = x + 5;
+      const labelValueOffset = 25; // Distância do label para o valor
+
+      // Cabeçalho: Cód Rastreio
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(fontSizeTitle);
+      doc.text(req.trackingCode, leftPadding, currentY);
+      
+      // Status (Pequeno no canto)
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100);
+      doc.text(req.status.toUpperCase(), x + labelWidth - 5, currentY, { align: 'right' });
+      doc.setTextColor(0); // Reset cor
+
+      // Linha separadora
+      currentY += 4;
+      doc.setDrawColor(220);
+      doc.line(x, currentY, x + labelWidth, currentY);
+      currentY += 8;
+
+      // Jira
+      doc.setFontSize(fontSizeLabel);
+      doc.setFont("helvetica", "bold");
+      doc.text("Cód. Jira:", leftPadding, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(fontSizeValue);
+      doc.text(req.jiraCode || '-', leftPadding + labelValueOffset, currentY);
+      
+      currentY += 7;
+
+      // Destinatário
+      doc.setFontSize(fontSizeLabel);
+      doc.setFont("helvetica", "bold");
+      doc.text("Destinatário:", leftPadding, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(fontSizeValue);
+      // Truncar nome se for muito longo
+      const name = req.patientName.length > 25 ? req.patientName.substring(0, 24) + '...' : req.patientName;
+      doc.text(name, leftPadding + labelValueOffset, currentY);
+
+      currentY += 7;
+
+      // Telefone
+      doc.setFontSize(fontSizeLabel);
+      doc.setFont("helvetica", "bold");
+      doc.text("Telefone:", leftPadding, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(fontSizeValue);
+      doc.text(req.phone, leftPadding + labelValueOffset, currentY);
+
+      currentY += 7;
+
+      // Endereço (Multi-line)
+      doc.setFontSize(fontSizeLabel);
+      doc.setFont("helvetica", "bold");
+      doc.text("Endereço:", leftPadding, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(fontSizeValue);
+      
+      const fullAddress = `${req.street}, ${req.neighborhood} ${req.complement ? '- ' + req.complement : ''}`;
+      const splitAddress = doc.splitTextToSize(fullAddress, labelWidth - labelValueOffset - 5);
+      doc.text(splitAddress, leftPadding + labelValueOffset, currentY);
+      
+      // Ajustar Y baseado na altura do endereço
+      currentY += (splitAddress.length * 5) + 2;
+
+      // Volumes (Destaque)
+      doc.setFontSize(fontSizeLabel);
+      doc.setFont("helvetica", "bold");
+      doc.text("Volume(s):", leftPadding, currentY);
+      doc.setFontSize(14); // Maior
+      doc.text(`${req.volumes}`, leftPadding + labelValueOffset, currentY);
+
+    });
+
+    doc.save(`etiquetas_pendentes_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-100px)] flex flex-col items-center justify-center text-slate-400">
@@ -146,9 +270,18 @@ const Dashboard: React.FC = () => {
 
              <div className="flex gap-2">
                 <button 
+                  onClick={generateLabels}
+                  className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors shadow-sm"
+                  title="Gerar Etiquetas (Aberto/Separando)"
+                >
+                  <Tag className="w-4 h-4 mr-2" />
+                  Etiquetas
+                </button>
+
+                <button 
                   onClick={generatePDF}
                   className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors shadow-sm"
-                  title="Exportar PDF"
+                  title="Exportar Relatório PDF"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   PDF
