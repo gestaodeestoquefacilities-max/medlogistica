@@ -5,44 +5,30 @@ import { Package, Lock, Mail, ArrowRight, ShieldCheck, Truck, User } from 'lucid
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, signUp } = useAppStore();
+  const { login } = useAppStore();
   
-  const [isLogin, setIsLogin] = useState(true); // Toggle between Login and Signup
-  
-  const [name, setName] = useState(''); // Only for signup
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setMessage('');
     setLoading(true);
 
     try {
-      if (isLogin) {
-        await login(email, password);
-        navigate('/');
-      } else {
-        await signUp(email, password, name);
-        setMessage('Conta criada com sucesso! Verifique seu email para confirmar ou faça login.');
-        // Optional: Auto login if Supabase settings allow it without email confirm
-        setIsLogin(true);
-      }
+      await login(email, password);
+      navigate('/');
     } catch (err: any) {
       console.error(err);
-      if (err.message.includes("Invalid login")) {
-        setError("Email ou senha incorretos.");
-      } else if (err.message.includes("User already registered")) {
-        setError("Este email já está cadastrado.");
-      } else if (err.message.includes("Password should be at least")) {
-        setError("A senha deve ter pelo menos 6 caracteres.");
+      if (err.message.includes("Invalid login credentials")) {
+        setError("Email ou senha incorretos. Verifique suas credenciais.");
+      } else if (err.message.includes("Email not confirmed")) {
+        setError("Por favor, confirme seu email antes de fazer login.");
       } else {
-        setError(err.message || 'Ocorreu um erro. Tente novamente.');
+        setError(err.message || 'Ocorreu um erro ao tentar entrar. Tente novamente.');
       }
     } finally {
       setLoading(false);
@@ -63,37 +49,16 @@ const Login: React.FC = () => {
               <span className="font-bold text-2xl text-slate-900 tracking-tight">MedLogística</span>
             </div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
-              {isLogin ? 'Bem-vindo de volta' : 'Criar nova conta'}
+              Bem-vindo de volta
             </h1>
             <p className="text-slate-500">
-              {isLogin ? 'Acesse o painel de gestão logística.' : 'Preencha os dados para começar.'}
+              Acesse o painel de gestão logística.
             </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div className="space-y-4">
-              
-              {!isLogin && (
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">Nome Completo</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <input
-                      id="name"
-                      type="text"
-                      required={!isLogin}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                      placeholder="Seu nome"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">E-mail</label>
                 <div className="relative">
@@ -141,13 +106,6 @@ const Login: React.FC = () => {
               </div>
             )}
             
-            {message && (
-              <div className="p-3 rounded-lg bg-green-50 border border-green-100 text-green-600 text-sm flex items-center">
-                <ShieldCheck className="w-4 h-4 mr-2" />
-                {message}
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
@@ -160,34 +118,12 @@ const Login: React.FC = () => {
                 </svg>
               ) : (
                 <span className="flex items-center">
-                  {isLogin ? 'Entrar no Sistema' : 'Cadastrar Conta'}
+                  Entrar no Sistema
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </span>
               )}
             </button>
           </form>
-
-          {/* Toggle Login/Sign Up */}
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
-                setMessage('');
-              }}
-              className="text-sm font-medium text-blue-600 hover:text-blue-500 flex items-center justify-center w-full"
-            >
-              {isLogin ? (
-                <>
-                  Não tem uma conta? <span className="ml-1 underline">Cadastre-se agora</span>
-                </>
-              ) : (
-                <>
-                  Já tem uma conta? <span className="ml-1 underline">Faça Login</span>
-                </>
-              )}
-            </button>
-          </div>
 
           {/* Footer Info */}
           <div className="mt-8 pt-6 border-t border-slate-100 text-center lg:text-left">
