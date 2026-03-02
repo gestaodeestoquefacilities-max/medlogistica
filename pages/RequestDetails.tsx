@@ -72,7 +72,7 @@ const RequestDetails: React.FC = () => {
   };
 
   const copyTrackingLink = () => {
-    const url = `${window.location.origin}/#/tracking/${request.trackingCode}`;
+    const url = `${window.location.origin}${window.location.pathname}#/tracking/${request.trackingCode}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -127,7 +127,7 @@ const RequestDetails: React.FC = () => {
                {copied ? "Link Copiado" : "Copiar Link de Rastreio"}
              </button>
              <button 
-               onClick={() => window.open(`#/tracking/${request.trackingCode}`, '_blank')}
+               onClick={() => window.open(`${window.location.origin}${window.location.pathname}#/tracking/${request.trackingCode}`, '_blank')}
                className="flex items-center justify-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
              >
                <ExternalLink className="w-4 h-4 mr-2" />

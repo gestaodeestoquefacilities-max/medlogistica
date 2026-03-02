@@ -12,7 +12,11 @@ const PublicTracking: React.FC = () => {
 
   useEffect(() => {
     const fetchTrackingData = async () => {
-      if (!code) return;
+      if (!code) {
+        setLoading(false);
+        setError(true);
+        return;
+      }
       
       setLoading(true);
       setError(false);
@@ -54,8 +58,29 @@ const PublicTracking: React.FC = () => {
               <Package className="w-8 h-8 text-red-400" />
             </div>
             <h1 className="text-xl font-bold text-slate-800">Chamado não encontrado</h1>
-            <p className="text-slate-500 mt-2">O código <span className="font-mono font-bold">{code}</span> não foi localizado em nosso sistema.</p>
-            <p className="text-sm text-slate-400 mt-4">Verifique se digitou corretamente.</p>
+            <p className="text-slate-500 mt-2">
+              O código <span className="font-mono font-bold">{code || "(vazio)"}</span> não foi localizado em nosso sistema.
+            </p>
+            <p className="text-sm text-slate-400 mt-4">Verifique se o link está correto ou digite o código novamente.</p>
+            
+            <div className="mt-6 pt-6 border-t border-slate-100">
+               <p className="text-xs text-slate-400 mb-3 uppercase font-bold tracking-wider">Tentar outro código</p>
+               <form onSubmit={(e) => {
+                 e.preventDefault();
+                 const val = (e.currentTarget.elements.namedItem('newCode') as HTMLInputElement).value;
+                 if (val) window.location.hash = `/tracking/${val}`;
+               }} className="flex gap-2">
+                  <input 
+                    name="newCode"
+                    type="text" 
+                    placeholder="Ex: MED-1234"
+                    className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors">
+                    Buscar
+                  </button>
+               </form>
+            </div>
          </div>
       </div>
     );

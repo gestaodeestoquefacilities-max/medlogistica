@@ -65,5 +65,11 @@ RETURNS SETOF requests
 LANGUAGE sql
 SECURITY DEFINER -- Roda com permissões de admin, ignorando o RLS da tabela para esta consulta específica
 AS $$
-  SELECT * FROM requests WHERE tracking_code = code_input;
+  SELECT * FROM requests 
+  WHERE tracking_code = code_input 
+     OR jira_code = code_input;
 $$;
+
+-- Garantir que a função possa ser chamada publicamente
+GRANT EXECUTE ON FUNCTION get_request_by_tracking_code(text) TO anon;
+GRANT EXECUTE ON FUNCTION get_request_by_tracking_code(text) TO authenticated;
