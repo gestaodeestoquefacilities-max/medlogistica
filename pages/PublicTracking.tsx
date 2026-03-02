@@ -22,14 +22,18 @@ const PublicTracking: React.FC = () => {
       setError(false);
       
       try {
+        console.log("Buscando rastreamento para o código:", code);
         const data = await api.getPublicRequest(code);
+        console.log("Dados retornados da API:", data);
         if (data) {
           setRequest(data);
         } else {
+          console.warn("Nenhum chamado encontrado para o código:", code);
           setError(true);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Erro ao buscar rastreamento:", err);
+        console.error("Detalhes do erro:", err.message, err.details, err.hint);
         setError(true);
       } finally {
         setLoading(false);

@@ -110,12 +110,45 @@ export const api = {
 
   // Método seguro para busca pública via RPC
   getPublicRequest: async (trackingCode: string): Promise<DeliveryRequest | null> => {
-    const { data, error } = await supabase
-      .rpc('get_request_by_tracking_code', { code_input: trackingCode });
+    let normalizedCode = trackingCode.trim();
+    // Se o código começar com "med-" ou "log-" (case insensitive), converte para maiúsculo
+    if (normalizedCode.toLowerCase().startsWith('med-') || normalizedCode.toLowerCase().startsWith('log-')) {
+      normalizedCode = normalizedCode.toUpperCase();
+    }
 
-    if (error) throw error;
-    if (!data || data.length === 0) return null;
+    console.log("Chamando RPC get_request_by_tracking_code com:", normalizedCode);
+    const { data, error } = await supabase
+      .rpc('get_request_by_tracking_code', { code_input: normalizedCode });
+
+    if (error) {
+      console.error("Erro no RPC get_request_by_tracking_code:", error);
+      // Tentar busca direta como fallback
+      console.log("Tentando busca direta como fallback...");
+      const { data: directData, error: directError } = await supabase
+        .from('requests')
+        .select('*')
+        .or(`tracking_code.ilike.${normalizedCode},jira_code.ilike.${normalizedCode}`)
+        .maybeSingle();
+      
+      if (directError) {
+        console.error("Erro na busca direta:", directError);
+        throw error; // Lança o erro original do RPC
+      }
+      
+      if (directData) {
+        console.log("Dados encontrados via busca direta:", directData);
+        return mapRequestFromDB(directData);
+      }
+      
+      return null;
+    }
+
+    if (!data || data.length === 0) {
+      console.log("Nenhum dado retornado pelo RPC.");
+      return null;
+    }
     
+    console.log("Dados retornados pelo RPC:", data[0]);
     // O RPC retorna um array de linhas (neste caso, 0 ou 1 linha)
     return mapRequestFromDB(data[0]);
   },
